@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Installer les dépendances backend + tests
+        run: |
+          pip install -r requirements-backend.txt
+          pip install pytest httpx
+
+      - name: Lancer la suite de tests
+        run: pytest backend/tests/ -v
+
+      - name: Vérifier que le générateur de code produit du Python valide
+        run: pytest backend/tests/test_code_generator.py -v
