@@ -1,7 +1,3 @@
-"""
-Schémas Pydantic — définissent la structure des données échangées
-entre le backend FastAPI et le frontend Streamlit.
-"""
 from pydantic import BaseModel
 from typing import Optional
 
@@ -99,6 +95,7 @@ class EncodingRecommendation(BaseModel):
     n_unique: int
     recommended_method: str
     rationale: str
+    unique_values: Optional[list[str]] = None
 
 
 class EncodingStrategyResponse(BaseModel):

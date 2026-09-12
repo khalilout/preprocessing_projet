@@ -1,15 +1,3 @@
-"""
-Dashboard Streamlit — Application de prétraitement des données.
-
-Ce fichier ne contient AUCUNE logique de traitement de données :
-tout est délégué à l'API FastAPI. Streamlit ne fait que :
-1) présenter l'UI,
-2) appeler l'API,
-3) afficher joliment les résultats.
-
-C'est important pour votre portfolio : ça montre que vous savez séparer
-présentation et logique métier (architecture "front consommateur d'API").
-"""
 import os
 import requests
 import pandas as pd
@@ -309,33 +297,65 @@ if st.session_state.analysis:
         if not recos:
             st.success("Aucune colonne catégorielle à encoder ✅")
         else:
-            method_options = ["one_hot", "label", "ordinal"]
-            chosen = {}
+            encoding_choices = {}
+            ordinal_orders = {}
+            method_options = ["ne_pas_encoder", "label", "one_hot", "ordinal"]
+
             for reco in recos:
+                col = reco["column"]
                 c1, c2 = st.columns([3, 2])
                 with c1:
-                    st.markdown(f"**{reco['column']}** — {reco['n_unique']} catégories")
+                    st.markdown(f"**{col}** — {reco['n_unique']} catégories")
                     st.caption(reco["rationale"])
                 with c2:
-                    idx = method_options.index(reco["recommended_method"])
-                    chosen[reco["column"]] = st.selectbox(
+                    idx = method_options.index(reco["recommended_method"]) if reco["recommended_method"] in method_options else 0
+                    encoding_choices[col] = st.selectbox(
                         "Méthode", method_options, index=idx,
-                        key=f"encoding_{reco['column']}", label_visibility="collapsed",
+                        key=f"encoding_method_{col}", label_visibility="collapsed",
                     )
-                if chosen[reco["column"]] == "ordinal":
-                    st.caption("⚠️ Pour l'encodage ordinal, l'ordre des catégories doit être précisé dans le code (non géré par cette interface simplifiée).")
+
+                if encoding_choices[col] == "ordinal":
+                    unique_values = reco.get("unique_values") or []
+                    if not unique_values:
+                        st.error(f"Valeurs uniques indisponibles pour {col}.")
+                        continue
+                    st.caption(f"Ordre pour **{col}** (sélectionne du plus petit au plus grand) :")
+                    selected_order = st.multiselect(
+                        f"Ordre des catégories — {col}",
+                        options=unique_values,
+                        default=[],
+                        key=f"ordinal_order_{col}",
+                        label_visibility="collapsed",
+                    )
+                    if len(selected_order) == len(unique_values):
+                        ordinal_orders[col] = selected_order
+                    else:
+                        st.warning(
+                            f"⚠️ {col} : sélectionne les {len(unique_values)} catégories "
+                            f"({len(selected_order)}/{len(unique_values)})."
+                        )
+
             if st.button("✅ Appliquer l'encodage", type="primary"):
-                with st.spinner("Encodage en cours..."):
-                    r = requests.post(f"{API_URL}/datasets/{dataset_id}/apply-encoding", json={"strategies": chosen})
-                if r.status_code == 200:
-                    result = r.json()
-                    st.session_state.analysis = result["analysis"]
-                    st.session_state.encoding_recos = None
-                    st.success("Encodage appliqué !")
-                    st.dataframe(pd.DataFrame(result["log"]), use_container_width=True)
-                    st.info(f"Nouvelles colonnes : {', '.join(c['name'] for c in result['analysis']['columns'])}")
+                missing_orders = [
+                    c for c, m in encoding_choices.items()
+                    if m == "ordinal" and c not in ordinal_orders
+                ]
+                if missing_orders:
+                    st.error(f"Ordre incomplet pour : {', '.join(missing_orders)}.")
                 else:
-                    st.error(f"Erreur : {r.text}")
+                    with st.spinner("Encodage en cours..."):
+                        r = requests.post(
+                            f"{API_URL}/datasets/{dataset_id}/apply-encoding",
+                            json={"strategies": encoding_choices, "ordinal_orders": ordinal_orders or None},
+                        )
+                    if r.status_code == 200:
+                        result = r.json()
+                        st.session_state.analysis = result["analysis"]
+                        st.session_state.encoding_recos = None
+                        st.success("Encodage appliqué avec succès !")
+                        st.dataframe(pd.DataFrame(result["log"]), use_container_width=True)
+                    else:
+                        st.error(f"Erreur : {r.text}")
 
     st.divider()
     st.header("6. Visualisation & export")

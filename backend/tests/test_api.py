@@ -1,7 +1,3 @@
-"""
-Tests d'intégration : appellent l'API FastAPI comme le ferait le frontend
-Streamlit, via TestClient (pas besoin de lancer un vrai serveur).
-"""
 import numpy as np
 import pandas as pd
 from fastapi.testclient import TestClient

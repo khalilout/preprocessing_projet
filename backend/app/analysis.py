@@ -1,13 +1,3 @@
-"""
-Étape 1 — ANALYSE INITIALE DES DONNÉES
-
-Reproduit le bloc "1. ANALYSE INITIALE" du schéma :
-- types de colonnes
-- taux de valeurs manquantes
-- symétrie (skewness)
-- corrélation
-- détection time series
-"""
 import pandas as pd
 import numpy as np
 
@@ -15,7 +5,6 @@ from .schemas import ColumnInfo, InitialAnalysisResponse
 
 
 def infer_column_type(series: pd.Series) -> str:
-    """Détermine un type 'métier' plus lisible que le dtype pandas brut."""
     if pd.api.types.is_datetime64_any_dtype(series):
         return "datetime"
     if pd.api.types.is_bool_dtype(series):
@@ -26,11 +15,6 @@ def infer_column_type(series: pd.Series) -> str:
 
 
 def try_parse_datetime(series: pd.Series) -> bool:
-    """
-    Tente de détecter si une colonne object est en fait une date
-    (ex: '2023-01-15' stockée en texte). On ne modifie pas la colonne ici,
-    on se contente de tester si le parsing réussit sur un échantillon.
-    """
     if pd.api.types.is_numeric_dtype(series) or pd.api.types.is_bool_dtype(series):
         return False
     sample = series.dropna().head(50)
@@ -44,12 +28,6 @@ def try_parse_datetime(series: pd.Series) -> bool:
 
 
 def detect_time_series(df: pd.DataFrame, datetime_cols: list[str]) -> bool:
-    """
-    Une table est considérée comme 'time series' si :
-    - au moins une colonne datetime existe, ET
-    - les valeurs de cette colonne sont (quasi) uniques et ordonnables
-      (ce qui exclut par ex. une colonne 'date de naissance' répétée sans logique temporelle globale)
-    """
     if not datetime_cols:
         return False
     for col in datetime_cols:

@@ -1,7 +1,26 @@
 venv/
+env/
+.venv/
+
 __pycache__/
-requirements.txt
-requirements-dev.txt
-requirements-frontend.txt
-requirements-backend.txt
-docker-compose.yml
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+.env
+.env.*
+
+.streamlit/secrets.toml
+
+# data/
+# *.xlsx
+# *.xls
+# *.csv
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+*.log

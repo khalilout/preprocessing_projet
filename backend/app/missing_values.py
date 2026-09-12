@@ -1,27 +1,3 @@
-"""
-Étape 2 — TRAITEMENT DES VALEURS MANQUANTES (version avec test statistique)
-
-Pour chaque colonne ayant des valeurs manquantes, on teste si le fait qu'une
-valeur soit manquante est statistiquement LIÉ aux autres colonnes du dataset :
-
-  - On crée un indicateur binaire "est_manquant" (0/1) pour la colonne étudiée.
-  - Pour chaque AUTRE colonne numérique : test de Student (t-test) comparant
-    ses valeurs selon que la colonne étudiée est manquante ou non.
-  - Pour chaque AUTRE colonne catégorielle : test du Chi² d'indépendance
-    entre "est_manquant" et cette colonne catégorielle.
-  - On retient la p-value la plus petite (= l'association la plus forte).
-
-Interprétation :
-  - p_value >= 0.05  -> MCAR/MAR -> méthodes BASIQUES
-      Time series -> bfill/ffill/interpolation
-      Pas d'outlier + symétrique -> moyenne
-      Pas d'outlier + asymétrique -> médiane
-      Avec outliers -> suppression des lignes
-  - p_value < 0.05   -> MAR/MNAR -> méthodes AVANCÉES
-      Time series -> groupes temporels
-      Avec outliers -> KNNImputer
-      Sans outlier -> IterativeImputer
-"""
 from __future__ import annotations
 
 import numpy as np
@@ -30,22 +6,10 @@ from scipy import stats
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer, KNNImputer
 from sklearn.ensemble import ExtraTreesRegressor
+from .stats_utils import has_outliers_iqr as _has_outliers_iqr
 
 PVALUE_THRESHOLD = 0.05
 SKEW_SYMMETRY_THRESHOLD = 0.5
-
-
-def _has_outliers_iqr(series: pd.Series, min_proportion: float = 0.01) -> bool:
-    s = series.dropna()
-    if s.shape[0] < 4:
-        return False
-    q1, q3 = s.quantile(0.25), s.quantile(0.75)
-    iqr = q3 - q1
-    if iqr == 0:
-        return False
-    lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
-    outlier_proportion = ((s < lower) | (s > upper)).mean()
-    return bool(outlier_proportion > min_proportion)
 
 
 def _missingness_min_pvalue(df: pd.DataFrame, target_col: str) -> float:

@@ -1,18 +1,3 @@
-"""
-API FastAPI — Application de prétraitement des données.
-
-Design choisi :
-- L'utilisateur upload un fichier -> on lui renvoie un `dataset_id`.
-- Toutes les étapes suivantes (valeurs manquantes, outliers, scaling,
-  encodage) référenceront ce `dataset_id` au lieu de renvoyer le fichier
-  entier à chaque appel. C'est plus propre, plus rapide, et ça permet
-  d'enchaîner les traitements côté serveur (le DataFrame "vit" en mémoire
-  et se transforme étape après étape).
-
-Note pédagogique : un stockage en mémoire (dict Python) est très bien
-pour un projet portfolio / une démo. Pour de la vraie prod multi-utilisateurs,
-on remplacerait ça par Redis ou une base de données.
-"""
 import io
 import uuid
 
@@ -89,11 +74,6 @@ def root():
 
 @app.post("/upload", response_model=UploadResponse)
 def upload_dataset(file: UploadFile = File(...)):
-    """
-    Étape 1 du schéma : Upload + Chargement des données + Analyse initiale.
-    Renvoie l'analyse ET stocke le dataset sous un `dataset_id` (voir header
-    de la réponse) pour les étapes suivantes.
-    """
     df = _read_upload_to_dataframe(file)
 
     if df.empty:
@@ -114,7 +94,6 @@ def upload_dataset(file: UploadFile = File(...)):
 
 @app.get("/datasets/{dataset_id}/preview")
 def preview_dataset(dataset_id: str, n_rows: int = 10):
-    """Renvoie un aperçu (head) du dataset, utile pour l'affichage Streamlit."""
     df = _get_dataset_or_404(dataset_id)
     preview = df.head(n_rows).replace([np.inf, -np.inf], np.nan)
     preview = preview.astype(object).where(pd.notnull(preview), None)
@@ -123,18 +102,12 @@ def preview_dataset(dataset_id: str, n_rows: int = 10):
 
 @app.get("/datasets/{dataset_id}/analysis", response_model=InitialAnalysisResponse)
 def get_analysis(dataset_id: str):
-    """Relance l'analyse initiale sur le dataset stocké (utile après transformation)."""
     df = _get_dataset_or_404(dataset_id)
     return analyze_dataframe(df)
 
 
 @app.get("/datasets/{dataset_id}/missing-strategy", response_model=MissingValueStrategyResponse)
 def get_missing_value_strategy(dataset_id: str):
-    """
-    Étape 2 (partie 1) : calcule et renvoie la méthode d'imputation recommandée
-    pour chaque colonne ayant des valeurs manquantes, sans rien modifier.
-    L'utilisateur peut ensuite valider ou surcharger ces recommandations.
-    """
     df = _get_dataset_or_404(dataset_id)
     analysis = analyze_dataframe(df)
     recommendations = recommend_strategy(
@@ -147,10 +120,6 @@ def get_missing_value_strategy(dataset_id: str):
 
 @app.post("/datasets/{dataset_id}/impute-missing", response_model=ImputationResponse)
 def impute_missing_values(dataset_id: str, request: ApplyImputationRequest):
-    """
-    Étape 2 (partie 2) : applique les méthodes d'imputation (recommandées ou
-    choisies par l'utilisateur) et met à jour le dataset stocké en mémoire.
-    """
     df = _get_dataset_or_404(dataset_id)
     analysis = analyze_dataframe(df)
 
@@ -240,11 +209,6 @@ def export_csv(dataset_id: str):
 
 @app.get("/datasets/{dataset_id}/summary")
 def get_summary(dataset_id: str):
-    """
-    Résumé complet de l'étape 6 : comparaison avant/après (lignes, colonnes,
-    taux de manquants global), journal cumulé de tous les traitements appliqués
-    depuis l'upload, et statistiques descriptives actuelles.
-    """
     df = _get_dataset_or_404(dataset_id)
     current_analysis = analyze_dataframe(df).model_dump()
     initial_analysis = INITIAL_ANALYSIS.get(dataset_id, current_analysis)
@@ -276,7 +240,6 @@ def get_summary(dataset_id: str):
 
 @app.get("/datasets/{dataset_id}/generated-code")
 def get_generated_code(dataset_id: str):
-    """Génère et renvoie un script Python (.py) reproduisant tous les traitements appliqués."""
     _get_dataset_or_404(dataset_id)
     strategies = APPLIED_STRATEGIES.get(dataset_id, {})
     code = generate_pipeline_code(strategies)
@@ -289,7 +252,6 @@ def get_generated_code(dataset_id: str):
 
 @app.get("/datasets/{dataset_id}/missing-matrix")
 def get_missing_matrix(dataset_id: str):
-    """Matrice missingno : visualise le motif des valeurs manquantes avant traitement."""
     df = _get_dataset_or_404(dataset_id)
     png_bytes = missing_matrix_png(df)
     return StreamingResponse(io.BytesIO(png_bytes), media_type="image/png")
@@ -297,7 +259,6 @@ def get_missing_matrix(dataset_id: str):
 
 @app.get("/datasets/{dataset_id}/outlier-boxplot")
 def get_outlier_boxplot(dataset_id: str, column: str, label: str = "Distribution actuelle"):
-    """Boxplot d'une colonne, à appeler AVANT puis APRÈS traitement des outliers pour comparer."""
     df = _get_dataset_or_404(dataset_id)
     if column not in df.columns:
         raise HTTPException(status_code=404, detail=f"Colonne '{column}' introuvable.")
@@ -307,11 +268,6 @@ def get_outlier_boxplot(dataset_id: str, column: str, label: str = "Distribution
 
 @app.get("/datasets/{dataset_id}/outlier-distribution")
 def get_outlier_distribution(dataset_id: str, column: str, label: str = "", color: str = "#a3c9f7"):
-    """
-    Boxplot + histogramme d'une colonne à l'instant présent. À appeler une fois
-    AVANT le traitement des outliers, puis une seconde fois APRÈS, pour comparer
-    visuellement si la forme de la distribution a changé.
-    """
     df = _get_dataset_or_404(dataset_id)
     if column not in df.columns:
         raise HTTPException(status_code=404, detail=f"Colonne '{column}' introuvable.")

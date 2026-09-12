@@ -1,18 +1,3 @@
-"""
-Étape 5 — ENCODAGE DES VARIABLES CATÉGORIELLES
-
-  Nominal Encoding  (pas d'ordre)         -> One-Hot Encoding (pd.get_dummies)
-  Ordinal Encoding  (ordre naturel)       -> OrdinalEncoder (nécessite l'ordre des catégories)
-  Label Encoding    (nominal, arbre/etc.) -> LabelEncoder
-
-  Comme la distinction nominal/ordinal dépend du sens métier (ex: "faible/moyen/fort"
-  est ordinal, "Dakar/Thies/Saint-Louis" ne l'est pas), l'automatisation ne peut
-  que proposer un défaut raisonnable basé sur la cardinalité :
-      - 2 catégories                -> label (binaire, l'ordre n'a pas d'impact)
-      - <= 10 catégories            -> one-hot (nominal probable, cardinalité gérable)
-      - > 10 catégories             -> label (évite l'explosion dimensionnelle du one-hot)
-  L'utilisateur reste libre de forcer "ordinal" en fournissant l'ordre des catégories.
-"""
 from __future__ import annotations
 
 import pandas as pd
@@ -37,11 +22,14 @@ def recommend_encoding_strategy(df: pd.DataFrame) -> list[dict]:
         else:
             method, rationale = "label", f"{n_unique} catégories (> {ONE_HOT_MAX_CARDINALITY}) -> Label Encoding (évite l'explosion dimensionnelle)."
 
+        unique_values = sorted(str(v) for v in df[col].dropna().unique().tolist())
+
         recommendations.append({
             "column": col,
             "n_unique": int(n_unique),
             "recommended_method": method,
             "rationale": rationale,
+            "unique_values": unique_values,
         })
 
     return recommendations
@@ -52,10 +40,7 @@ def apply_encoding(
     strategies: dict[str, str],
     ordinal_orders: dict[str, list[str]] | None = None,
 ) -> tuple[pd.DataFrame, list[dict]]:
-    """
-    strategies: {colonne: "one_hot" | "label" | "ordinal"}
-    ordinal_orders: {colonne: [catégories dans l'ordre croissant]} — requis si method="ordinal"
-    """
+    
     df = df.copy()
     log = []
     ordinal_orders = ordinal_orders or {}

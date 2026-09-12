@@ -1,10 +1,3 @@
-"""
-Fixtures partagées entre les fichiers de test.
-
-Une fixture pytest est une fonction qui prépare des données ou un état
-réutilisable par plusieurs tests, sans dupliquer le code de préparation
-dans chaque test.
-"""
 import numpy as np
 import pandas as pd
 import pytest
@@ -12,7 +5,6 @@ import pytest
 
 @pytest.fixture
 def clean_dataframe() -> pd.DataFrame:
-    """Un DataFrame simple, sans valeurs manquantes ni outliers, pour les cas de base."""
     np.random.seed(42)
     n = 2000
     return pd.DataFrame({
@@ -25,11 +17,6 @@ def clean_dataframe() -> pd.DataFrame:
 
 @pytest.fixture
 def dataframe_with_missing_values() -> pd.DataFrame:
-    """
-    Un DataFrame avec deux types de valeurs manquantes :
-    - 'age' : manquants complètement aléatoires (MCAR)
-    - 'ville' : manquants dépendants de 'salaire' (MAR) - simule un vrai biais
-    """
     np.random.seed(0)
     n = 400
     df = pd.DataFrame({

@@ -1,20 +1,3 @@
-"""
-Étape 3 — TRAITEMENT DES VALEURS ABERRANTES (OUTLIERS)
-
-  Pour chaque colonne numérique : vérifier la symétrie (skewness)
-
-      |skew| < 0.5                          -> Z-SCORE
-          z = (x - moyenne) / écart-type ; |z| > 3 -> outlier
-          remplacement par la moyenne (distribution normale) ou médiane (quasi-normale)
-
-      0.5 <= |skew| < 1.5 (asymétrique)      -> IQR
-          bornes = [Q1 - 1.5*IQR ; Q3 + 1.5*IQR]
-          valeurs hors bornes -> plafonnées aux bornes (capping)
-
-      |skew| >= 1.5 (très asymétrique)       -> WINSORISATION
-          plafonnement aux percentiles 5% / 95%
-          (préfère "écraser" les extrêmes plutôt que les traiter comme erreurs)
-"""
 from __future__ import annotations
 
 import numpy as np
@@ -29,7 +12,6 @@ WINSOR_UPPER_PCT = 0.95
 
 
 def recommend_outlier_strategy(df: pd.DataFrame) -> list[dict]:
-    """Recommande une méthode de traitement des outliers par colonne numérique."""
     recommendations = []
     numeric_cols = df.select_dtypes(include=[np.number]).columns
 

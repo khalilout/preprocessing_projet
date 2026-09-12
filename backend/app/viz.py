@@ -1,6 +1,3 @@
-"""
-Génération de visualisations en image (PNG) côté backend.
-"""
 import io
 
 import matplotlib
@@ -19,15 +16,6 @@ def _fig_to_png_bytes(fig) -> bytes:
 
 
 def missing_matrix_png(df: pd.DataFrame, max_rows: int = 5000) -> bytes:
-    """
-    Matrice missingno : une ligne blanche = valeur manquante, pour repérer les motifs de manquants.
-
-    Sur un très gros dataset, tracer une ligne par observation est très coûteux
-    en mémoire/temps (matplotlib doit dessiner une primitive par ligne). On
-    échantillonne donc à `max_rows` lignes maximum : le motif global des
-    valeurs manquantes reste visible et interprétable sur un échantillon,
-    inutile de tracer les 200 000 lignes pour ça.
-    """
     if len(df) > max_rows:
         df = df.sample(max_rows, random_state=42).sort_index()
 
@@ -48,7 +36,6 @@ def boxplot_png(series: pd.Series, title: str) -> bytes:
 
 
 def distribution_comparison_png(before: pd.Series, after: pd.Series, column: str) -> bytes:
-    """Compare la distribution d'une colonne AVANT et APRÈS traitement : boxplot + histogramme côte à côte."""
     fig, axes = plt.subplots(2, 2, figsize=(11, 7))
 
     axes[0, 0].boxplot(before.dropna(), vert=False, patch_artist=True,
@@ -70,11 +57,6 @@ def distribution_comparison_png(before: pd.Series, after: pd.Series, column: str
 
 
 def distribution_single_png(series: pd.Series, title: str, color: str = "#a3c9f7") -> bytes:
-    """
-    Boxplot + histogramme d'une colonne à un instant T. Appelé une fois AVANT
-    le traitement des outliers, puis une seconde fois APRÈS, pour comparer
-    visuellement si la forme de la distribution a changé.
-    """
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
 
     axes[0].boxplot(series.dropna(), vert=False, patch_artist=True,

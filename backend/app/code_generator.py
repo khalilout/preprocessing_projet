@@ -1,12 +1,3 @@
-"""
-Génère un script Python autonome (pandas/scikit-learn) qui reproduit,
-étape par étape, exactement les traitements appliqués via l'API/le dashboard.
-
-Utile pour le portfolio : montre que l'app ne fait pas de la "boîte noire",
-et donne à l'utilisateur un script réutilisable/versionnable dans un repo Git,
-indépendant de l'application elle-même.
-"""
-
 HEADER = '''"""
 Script de prétraitement généré automatiquement.
 Reproduit les étapes appliquées via l'application (analyse, valeurs manquantes,
@@ -133,14 +124,6 @@ def _encoding_code(strategies: dict[str, str]) -> str:
 
 
 def generate_pipeline_code(applied_strategies: dict) -> str:
-    """
-    applied_strategies: {
-        "missing_values": {col: method, ...},
-        "outliers": {col: method, ...},
-        "scaling": {col: method, ...},
-        "encoding": {col: method, ...},
-    }
-    """
     code = HEADER
     code += _missing_values_code(applied_strategies.get("missing_values", {}))
     code += _outliers_code(applied_strategies.get("outliers", {}))
