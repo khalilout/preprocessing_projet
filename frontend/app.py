@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 
-API_URL = os.environ.get("API_URL", "http://localhost:8000")
+API_URL = os.environ.get("API_URL", "https://preprocessing-projet.onrender.com")
 
 st.set_page_config(
     page_title="Prétraitement des données",
